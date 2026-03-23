@@ -188,7 +188,7 @@ class Handler(SimpleHTTPRequestHandler):
                 save_json(CHANGELOG_FILE, changelog[:50])
                 # Auto-sync to GitHub
                 try:
-                    subprocess.Popen(['bash', os.path.join(DATA_DIR, 'sync.sh')], 
+                    subprocess.Popen(['bash', os.path.join(DATA_DIR, 'sync.sh')], env={**os.environ, 'DATA_DIR': DATA_DIR}, 
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 except: pass
             
