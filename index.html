@@ -1291,7 +1291,9 @@ loadChangelog();
       </div>
     </div>
   </div>
-</section></script>
+</section>
+setTimeout(()=>{fetch("/api/code").then(r=>r.json()).then(d=>{let el=document.getElementById("codeSize");if(el)el.textContent=(d.length||0).toLocaleString()})},800);
+</script>
 <!-- Contribution by test: test -->
 <p>test</p>
 </body>
