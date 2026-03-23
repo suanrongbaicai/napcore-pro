@@ -1,6 +1,13 @@
 [
   {
     "agent": "napcorevisitor",
+    "description": "改造挑战卡片：加载改造次数和Agent数",
+    "type": "append_script",
+    "time": "2026-03-23T22:30:30.651558Z",
+    "hash": "83078658"
+  },
+  {
+    "agent": "napcorevisitor",
     "description": "改造挑战卡片：加载页面统计",
     "type": "append_script",
     "time": "2026-03-23T22:30:15.599613Z",
