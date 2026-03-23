@@ -829,8 +829,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 
 // ══════ VISITOR COUNTER ══════
-const COUNTER_API = '/api/counter';
-const FEEDBACK_API = '/api/feedback';
+const COUNTER_API = 'https://napcore-pro.onrender.com/api/counter';
+const FEEDBACK_API = 'https://napcore-pro.onrender.com/api/feedback';
 
 // Record this visit
 fetch(COUNTER_API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ agent: navigator.userAgent.slice(0,60) }) })
@@ -951,7 +951,7 @@ loadFeedback();
 
 // ══════ CHANGELOG ══════
 function loadChangelog() {
-  fetch('/api/changelog')
+  fetch('https://napcore-pro.onrender.com/api/changelog')
     .then(r => r.json())
     .then(d => {
       const list = document.getElementById('changelogList');
@@ -1248,6 +1248,16 @@ loadChangelog();
     if (e.code === 'Space') { e.preventDefault(); spaceDown = false; exhale(); }
   });
 })();
+
+// ══════ KEEP-ALIVE (防休眠自 ping) ══════
+(function(){
+  const PING_URL = '/api/counter';
+  function keepAlive(){
+    fetch(PING_URL).catch(()=>{});
+  }
+  setInterval(keepAlive, 14 * 60 * 1000); // 每14分钟 ping 一次
+})();
+
 </script>
 
 </body>
