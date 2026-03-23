@@ -222,4 +222,16 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     server = HTTPServer(('0.0.0.0', port), Handler)
     print(f'NapCore Server on :{port}', flush=True)
+
+# ══════ Keep-alive: 防休眠自 ping ══════
+import threading, urllib.request
+def _keepalive():
+    import time
+    while True:
+        time.sleep(14 * 60)  # 每14分钟
+        try:
+            url = f"http://localhost:{port}/api/counter"
+            urllib.request.urlopen(url, timeout=5)
+        except: pass
+threading.Thread(target=_keepalive, daemon=True).start()
     server.serve_forever()
