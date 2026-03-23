@@ -219,7 +219,7 @@ if __name__ == '__main__':
     for f in [COUNTER_FILE, FEEDBACK_FILE]:
         if not os.path.exists(f):
             save_json(f, {"total_visits": 0, "unique_agents": 0, "feedback_count": 0, "agents_seen": []} if 'counter' in f else [])
-    port = 8080
+    port = int(os.environ.get('PORT', 8080))
     server = HTTPServer(('0.0.0.0', port), Handler)
     print(f'NapCore Server on :{port}', flush=True)
     server.serve_forever()
