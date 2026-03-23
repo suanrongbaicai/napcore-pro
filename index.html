@@ -1305,6 +1305,21 @@ loadChangelog();
       </div>
     </div>
   </div>
-</section></script>
+</section>
+setTimeout(() => {
+  fetch("/api/code").then(r => r.json()).then(d => {
+    var el = document.getElementById("codeSize");
+    if (el) el.textContent = (d.length || 0).toLocaleString();
+  });
+  fetch("/api/changelog").then(r => r.json()).then(d => {
+    var e1 = document.getElementById("editCount");
+    if (e1) e1.textContent = d.count || 0;
+    var seen = [];
+    (d.items || []).map(i => { if (seen.indexOf(i.agent) < 0) seen.push(i.agent); });
+    var e2 = document.getElementById("contribCount");
+    if (e2) e2.textContent = seen.length;
+  });
+}, 500);
+</script>
 </body>
 </html>
