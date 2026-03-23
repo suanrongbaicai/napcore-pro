@@ -977,5 +977,278 @@ loadChangelog();
 </script>
 <!-- Contribution by ZERO: 测试改造 -->
 <div style="color:red">Tested!</div>
+<!-- ══════ BREATHING AUDIO VISUALIZER ══════ -->
+<style>
+.breathe-section{padding:120px 48px;text-align:center;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,rgba(108,92,231,.06),transparent 70%)}
+.breathe-section::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(5,5,8,.9) 30%,rgba(5,5,8,.9) 70%,transparent);pointer-events:none}
+.breathe-wrap{position:relative;max-width:800px;margin:0 auto}
+.breathe-label{font-size:12px;color:var(--accent);letter-spacing:4px;text-transform:uppercase;margin-bottom:16px;font-weight:600}
+.breathe-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,4vw,48px);font-weight:700;margin-bottom:12px;letter-spacing:-1px}
+.breathe-sub{font-size:15px;color:var(--c2);margin-bottom:48px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.7}
+.breathe-ring-wrap{position:relative;width:260px;height:260px;margin:0 auto 40px}
+.breathe-ring{width:100%;height:100%;border-radius:50%;border:2px solid rgba(108,92,231,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 1.5s cubic-bezier(.4,0,.2,1),border-color .5s,box-shadow .5s;user-select:none;-webkit-user-select:none;position:relative}
+.breathe-ring.inhale{transform:scale(1.35);border-color:rgba(168,85,247,.6);box-shadow:0 0 60px rgba(168,85,247,.2),0 0 120px rgba(108,92,231,.1)}
+.breathe-ring.exhale{transform:scale(0.75);border-color:rgba(6,214,160,.5);box-shadow:0 0 40px rgba(6,214,160,.15)}
+.breathe-ring-pulse{position:absolute;inset:-20px;border-radius:50%;border:1px solid rgba(108,92,231,.15);animation:bPulse 4s ease-in-out infinite}
+.breathe-ring-pulse:nth-child(2){inset:-40px;border-color:rgba(108,92,231,.08);animation-delay:.5s}
+@keyframes bPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.7;transform:scale(1.05)}}
+.breathe-icon{font-size:48px;transition:all .5s;z-index:2}
+.breathe-state{font-size:13px;color:var(--c2);margin-top:20px;letter-spacing:2px;text-transform:uppercase;min-height:20px}
+.breathe-state span{transition:color .3s}
+.breathe-viz{height:80px;margin:24px auto 0;max-width:500px;display:flex;align-items:center;justify-content:center;gap:3px}
+.breathe-bar{width:4px;border-radius:4px;background:var(--accent);transition:height .15s ease,opacity .15s;min-height:4px;opacity:.3}
+.breathe-instruction{margin-top:32px;font-size:13px;color:var(--c3);letter-spacing:1px}
+.breathe-instruction kbd{padding:2px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;font-size:12px;font-family:inherit;color:var(--c2)}
+.breathe-stats{display:flex;gap:32px;justify-content:center;margin-top:32px}
+.breathe-stat{text-align:center}
+.breathe-stat-num{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:var(--accent)}
+.breathe-stat-label{font-size:11px;color:var(--c3);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+</style>
+
+<section class="breathe-section" id="breathe">
+  <div class="breathe-wrap">
+    <div class="breathe-label">Interactive Experience</div>
+    <h2 class="breathe-title">呼吸可视化 · <span class="gradient">听见你的节奏</span></h2>
+    <p class="breathe-sub">按住圆环吸气，松开呼气。Web Audio API 实时合成呼吸引导音效，视觉与听觉同步律动。</p>
+
+    <div class="breathe-ring-wrap">
+      <div class="breathe-ring-pulse"></div>
+      <div class="breathe-ring-pulse"></div>
+      <div class="breathe-ring" id="breatheRing">
+        <div class="breathe-icon" id="breatheIcon">🫁</div>
+      </div>
+    </div>
+
+    <div class="breathe-state" id="breatheState"><span style="color:var(--c3)">等待开始…</span></div>
+
+    <div class="breathe-viz" id="breatheViz"></div>
+
+    <div class="breathe-stats">
+      <div class="breathe-stat"><div class="breathe-stat-num" id="breatheCycles">0</div><div class="breathe-stat-label">呼吸周期</div></div>
+      <div class="breathe-stat"><div class="breathe-stat-num" id="breatheTime">0s</div><div class="breathe-stat-label">持续时间</div></div>
+      <div class="breathe-stat"><div class="breathe-stat-num" id="breatheAvg">—</div><div class="breathe-stat-label">平均节奏</div></div>
+    </div>
+
+    <div class="breathe-instruction">按住 <kbd>空格</kbd> 或点击圆环开始呼吸</div>
+  </div>
+</section>
+
+<script>
+(function(){
+  // === Audio Engine ===
+  let ctx = null;
+  let masterGain = null;
+  let noiseNode = null;
+  let noiseGain = null;
+  let toneOsc = null;
+  let toneGain = null;
+  let heartbeatInterval = null;
+
+  function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.3;
+    masterGain.connect(ctx.destination);
+
+    // Breathing noise (filtered white noise = "whoosh")
+    const bufSize = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    noiseNode = ctx.createBufferSource();
+    noiseNode.buffer = buf;
+    noiseNode.loop = true;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 300;
+    bp.Q.value = 0.8;
+    noiseGain = ctx.createGain();
+    noiseGain.gain.value = 0;
+    noiseNode.connect(bp);
+    bp.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    noiseNode.start();
+
+    // Ambient tone (soft pad)
+    toneOsc = ctx.createOscillator();
+    toneOsc.type = 'sine';
+    toneOsc.frequency.value = 110;
+    toneGain = ctx.createGain();
+    toneGain.gain.value = 0;
+    const tFilter = ctx.createBiquadFilter();
+    tFilter.type = 'lowpass';
+    tFilter.frequency.value = 400;
+    toneOsc.connect(tFilter);
+    tFilter.connect(toneGain);
+    toneGain.connect(masterGain);
+    toneOsc.start();
+  }
+
+  function startHeartbeat() {
+    if (heartbeatInterval) return;
+    heartbeatInterval = setInterval(() => {
+      if (!ctx || state !== 'inhale') return;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.frequency.value = 60;
+      osc.type = 'sine';
+      g.gain.setValueAtTime(0.08, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.connect(g); g.connect(masterGain);
+      osc.start(); osc.stop(ctx.currentTime + 0.2);
+      // double beat
+      setTimeout(() => {
+        if (!ctx) return;
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.frequency.value = 58;
+        o2.type = 'sine';
+        g2.gain.setValueAtTime(0.05, ctx.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        o2.connect(g2); g2.connect(masterGain);
+        o2.start(); o2.stop(ctx.currentTime + 0.15);
+      }, 200);
+    }, 1200);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+  }
+
+  // === State ===
+  let state = 'idle'; // idle | inhale | exhale
+  let cycles = 0;
+  let startTime = null;
+  let inhaleStart = null;
+  const durations = [];
+  const ring = document.getElementById('breatheRing');
+  const icon = document.getElementById('breatheIcon');
+  const stateEl = document.getElementById('breatheState');
+  const viz = document.getElementById('breatheViz');
+  const vizBars = [];
+
+  // Create visualization bars
+  for (let i = 0; i < 40; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'breathe-bar';
+    bar.style.height = '4px';
+    viz.appendChild(bar);
+    vizBars.push(bar);
+  }
+
+  // === Breathing Logic ===
+  let vizAnim = null;
+
+  function inhale() {
+    if (state === 'inhale') return;
+    initAudio();
+    if (ctx.state === 'suspended') ctx.resume();
+    state = 'inhale';
+    inhaleStart = Date.now();
+    ring.classList.remove('exhale');
+    ring.classList.add('inhale');
+    icon.textContent = '🌬️';
+    stateEl.innerHTML = '<span style="color:#a855f7">吸气…</span>';
+
+    if (!startTime) startTime = Date.now();
+
+    // Audio ramp
+    const now = ctx.currentTime;
+    noiseGain.gain.cancelScheduledValues(now);
+    noiseGain.gain.setValueAtTime(noiseGain.gain.value, now);
+    noiseGain.gain.linearRampToValueAtTime(0.15, now + 2);
+    toneOsc.frequency.linearRampToValueAtTime(130, now + 2);
+    toneGain.gain.cancelScheduledValues(now);
+    toneGain.gain.setValueAtTime(toneGain.gain.value, now);
+    toneGain.gain.linearRampToValueAtTime(0.06, now + 2);
+
+    startHeartbeat();
+    startVizAnim('inhale');
+  }
+
+  function exhale() {
+    if (state !== 'inhale') return;
+    state = 'exhale';
+    const duration = inhaleStart ? ((Date.now() - inhaleStart) / 1000).toFixed(1) : 0;
+    durations.push(parseFloat(duration));
+    cycles++;
+    document.getElementById('breatheCycles').textContent = cycles;
+    document.getElementById('breatheTime').textContent = ((Date.now() - startTime) / 1000).toFixed(0) + 's';
+    if (durations.length > 0) {
+      const avg = (durations.reduce((a,b)=>a+b,0) / durations.length).toFixed(1);
+      document.getElementById('breatheAvg').textContent = avg + 's';
+    }
+
+    ring.classList.remove('inhale');
+    ring.classList.add('exhale');
+    icon.textContent = '💨';
+    stateEl.innerHTML = '<span style="color:#06d6a0">呼气… ' + duration + 's</span>';
+
+    // Audio ramp down
+    const now = ctx.currentTime;
+    noiseGain.gain.cancelScheduledValues(now);
+    noiseGain.gain.setValueAtTime(noiseGain.gain.value, now);
+    noiseGain.gain.linearRampToValueAtTime(0.02, now + 2);
+    toneOsc.frequency.linearRampToValueAtTime(80, now + 2);
+    toneGain.gain.cancelScheduledValues(now);
+    toneGain.gain.setValueAtTime(toneGain.gain.value, now);
+    toneGain.gain.linearRampToValueAtTime(0.01, now + 2);
+
+    stopHeartbeat();
+    startVizAnim('exhale');
+
+    // Auto-return to idle after exhale
+    setTimeout(() => {
+      if (state === 'exhale') {
+        state = 'idle';
+        ring.classList.remove('exhale');
+        icon.textContent = '🫁';
+        stateEl.innerHTML = '<span style="color:var(--c3)">准备好了？按住继续</span>';
+      }
+    }, 2000);
+  }
+
+  function startVizAnim(phase) {
+    if (vizAnim) cancelAnimationFrame(vizAnim);
+    const speed = phase === 'inhale' ? 0.03 : 0.02;
+    const maxH = phase === 'inhale' ? 60 : 30;
+    let t = performance.now();
+    function frame(now) {
+      const dt = (now - t) / 1000;
+      t = now;
+      for (let i = 0; i < vizBars.length; i++) {
+        const h = Math.abs(Math.sin(now * speed + i * 0.3)) * maxH + 4;
+        vizBars[i].style.height = h + 'px';
+        vizBars[i].style.opacity = (h / maxH * 0.6 + 0.2);
+      }
+      vizAnim = requestAnimationFrame(frame);
+    }
+    vizAnim = requestAnimationFrame(frame);
+    // Stop after 2s
+    setTimeout(() => {
+      if (vizAnim) { cancelAnimationFrame(vizAnim); vizAnim = null; }
+      vizBars.forEach(b => { b.style.height = '4px'; b.style.opacity = '0.3'; });
+    }, 2000);
+  }
+
+  // === Events ===
+  // Mouse / Touch
+  ring.addEventListener('mousedown', (e) => { e.preventDefault(); inhale(); });
+  ring.addEventListener('touchstart', (e) => { e.preventDefault(); inhale(); }, {passive:false});
+  window.addEventListener('mouseup', exhale);
+  window.addEventListener('touchend', exhale);
+
+  // Keyboard
+  let spaceDown = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !spaceDown && !e.repeat) { e.preventDefault(); spaceDown = true; inhale(); }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); spaceDown = false; exhale(); }
+  });
+})();
+</script>
+
 </body>
 </html>
