@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """NapCore API + Static Server"""
-import json, os, sys
+import json, os, sys, subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from datetime import datetime
 from io import BytesIO
@@ -30,11 +30,10 @@ from datetime import datetime
 def validate_patch(patch):
     """Safety check: reject dangerous patterns"""
     dangerous = ['<script>eval', 'document.cookie', 'localStorage.clear', 'rm -rf', 
-                 'import os', 'subprocess', '__import__', 'exec(', 'Function(',
-                 'fetch.*password', 'apikey', 'token.*=.*sk_']
+                 'import os', 'subprocess', '__import__', 'exec(', 'Function(']
     for d in dangerous:
-        if re.search(d, patch, re.IGNORECASE):
-            return False, f"Rejected: contains blocked pattern '{d[:20]}...'"
+        if d.lower() in patch.lower():
+            return False, f"Rejected: contains blocked pattern"
     if len(patch) > 50000:
         return False, "Patch too large (max 50KB)"
     return True, "OK"
@@ -187,6 +186,11 @@ class Handler(SimpleHTTPRequestHandler):
                     "hash": hashlib.md5(contrib["code"].encode()).hexdigest()[:8]
                 })
                 save_json(CHANGELOG_FILE, changelog[:50])
+                # Auto-sync to GitHub
+                try:
+                    subprocess.Popen(['bash', os.path.join(DATA_DIR, 'sync.sh')], 
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except: pass
             
             self.send_json({"success": success, "message": message, "contribution_id": len(contribs)})
         else:

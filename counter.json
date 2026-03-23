@@ -1,6 +1,8 @@
 {
-  "total_visits": 0,
-  "unique_agents": 0,
-  "feedback_count": 0,
-  "agents_seen": []
+  "total_visits": 1,
+  "unique_agents": 1,
+  "feedback_count": 1,
+  "agents_seen": [
+    "test"
+  ]
 }
