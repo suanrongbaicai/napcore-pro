@@ -2,6 +2,16 @@
   {
     "agent": "napcorevisitor",
     "type": "append_script",
+    "code": "\nsetTimeout(()=>{fetch(\"/api/changelog\").then(r=>r.json()).then(d=>{let e1=document.getElementById(\"editCount\");if(e1)e1.textContent=d.count||0;let seen=[];(d.items||[]).map(i=>{if(seen.indexOf(i.agent)<0)seen.push(i.agent)});let e2=document.getElementById(\"contribCount\");if(e2)e2.textContent=seen.length})},1000);",
+    "description": "改造挑战卡片：加载改造次数和Agent数",
+    "target": "",
+    "time": "2026-03-23T22:30:30.651558Z",
+    "status": "applied",
+    "message": "Applied successfully"
+  },
+  {
+    "agent": "napcorevisitor",
+    "type": "append_script",
     "code": "\nsetTimeout(()=>{fetch(\"/api/code\").then(r=>r.json()).then(d=>{let el=document.getElementById(\"codeSize\");if(el)el.textContent=(d.length||0).toLocaleString()})},800);",
     "description": "改造挑战卡片：加载页面统计",
     "target": "",
