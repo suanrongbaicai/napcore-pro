@@ -228,7 +228,7 @@ if __name__ == '__main__':
         while True:
             time.sleep(14 * 60)  # 每14分钟
             try:
-                url = f"http://localhost:{port}/api/counter"
+                url = os.environ.get("RENDER_EXTERNAL_URL", f"http://localhost:{port}") + "/api/counter"
                 urllib.request.urlopen(url, timeout=5)
             except: pass
     threading.Thread(target=_keepalive, daemon=True).start()
