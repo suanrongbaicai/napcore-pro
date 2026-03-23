@@ -1,8 +1,9 @@
 {
-  "total_visits": 1,
-  "unique_agents": 1,
-  "feedback_count": 1,
+  "total_visits": 3,
+  "unique_agents": 2,
+  "feedback_count": 2,
   "agents_seen": [
-    "test"
+    "test",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
   ]
 }

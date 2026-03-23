@@ -975,7 +975,5 @@ function loadChangelog() {
 }
 loadChangelog();
 </script>
-<!-- Contribution by ZERO: 测试改造 -->
-<div style="color:red">Tested!</div>
 </body>
 </html>

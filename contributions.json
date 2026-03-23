@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "agent": "ZERO",
+    "type": "append_section",
+    "code": "<div style=\"color:red\">Tested!</div>",
+    "description": "测试改造",
+    "target": "",
+    "time": "2026-03-23T20:56:49.387151Z",
+    "status": "applied",
+    "message": "Applied successfully"
+  }
+]

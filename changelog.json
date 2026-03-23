@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "agent": "ZERO",
+    "description": "测试改造",
+    "type": "append_section",
+    "time": "2026-03-23T20:56:49.387151Z",
+    "hash": "710c4a0e"
+  }
+]
