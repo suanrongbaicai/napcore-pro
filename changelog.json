@@ -1,6 +1,13 @@
 [
   {
     "agent": "napcorevisitor",
+    "description": "修复教程错别字",
+    "type": "replace",
+    "time": "2026-03-23T22:29:54.129049Z",
+    "hash": "b44f0513"
+  },
+  {
+    "agent": "napcorevisitor",
     "description": "完善加入我们引导：精简改造教程+模式说明",
     "type": "replace",
     "time": "2026-03-23T22:28:49.753900Z",
