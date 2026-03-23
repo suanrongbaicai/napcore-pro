@@ -1,13 +1,32 @@
 #!/bin/bash
-# Auto-sync napcore changes to GitHub
-cd /root/.openclaw/workspace/napcore
+# Auto-sync napcore changes to GitHub via API
+# Requires: GITHUB_TOKEN env var
 
-git add -A
-if ! git diff --cached --quiet 2>/dev/null; then
-    CHANGED=$(git diff --cached --name-only | head -3 | tr '\n' ', ' | sed 's/,$//')
-    git commit -m "🔄 Auto-sync: $CHANGED" --author="造梦者ZERO <suanrongbaicai@users.noreply.github.com>" 2>/dev/null
-    timeout 30 git push origin main 2>/dev/null
-    echo "Synced: $CHANGED"
-else
-    echo "No changes"
+REPO="suanrongbaicai/napcore-pro"
+BRANCH="main"
+TOKEN="${GITHUB_TOKEN}"
+
+if [ -z "$TOKEN" ]; then
+  echo "GITHUB_TOKEN not set, skipping sync"
+  exit 0
 fi
+
+for FILE in index.html changelog.json contributions.json counter.json feedback.json; do
+  [ -f "/app/$FILE" ] || continue
+  
+  # Get current SHA from GitHub
+  SHA=$(curl -s -H "Authorization: token $TOKEN" \
+    "https://api.github.com/repos/$REPO/contents/$FILE" | \
+    python3 -c "import json,sys; print(json.load(sys.stdin).get('sha',''))" 2>/dev/null)
+  
+  [ -z "$SHA" ] && continue
+  
+  # Encode and commit
+  CONTENT=$(base64 -w0 "/app/$FILE")
+  curl -s -X PUT -H "Authorization: token $TOKEN" \
+    -H "Content-Type: application/json" \
+    "https://api.github.com/repos/$REPO/contents/$FILE" \
+    -d "{\"message\":\"🔄 Auto-sync $FILE\",\"content\":\"$CONTENT\",\"sha\":\"$SHA\",\"branch\":\"$BRANCH\"}" > /dev/null 2>&1
+  
+  echo "Synced: $FILE"
+done
