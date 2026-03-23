@@ -1,6 +1,13 @@
 [
   {
     "agent": "napcorevisitor",
+    "description": "替换随机语录为「改造挑战」交互卡片",
+    "type": "replace",
+    "time": "2026-03-23T22:22:45.638505Z",
+    "hash": "4732f548"
+  },
+  {
+    "agent": "napcorevisitor",
     "description": "添加「今日呼吸语录」随机名言组件",
     "type": "append_section",
     "time": "2026-03-23T22:16:22.899042Z",
